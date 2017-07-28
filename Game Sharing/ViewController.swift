@@ -24,23 +24,29 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
 
     @IBAction func followForFood(_ sender: Any) {
         // First, check if user is already signed into twitter
-        let store = Twitter.sharedInstance().sessionStore
-        let lastSession = store.session()
-        
-        if lastSession != nil { // user has already signed into twitter
-            print("Signed in!")
-            presentFollow()
-        } else { // not signed in yet (so we will sign them in!)
+        if !checkIfUserIsSignedIn() {
             print("No account yet!")
             signIn()
         }
+        presentFollow()
+    }
+    
+    func checkIfUserIsSignedIn() -> Bool {
+        let store = Twitter.sharedInstance().sessionStore
+        let lastSession = store.session()
+        var signedIn : Bool = false
+        
+        if lastSession != nil { // user is already signed into twitter
+            signedIn = true
+        }
+        
+        return signedIn
     }
     
     func signIn() {
         Twitter.sharedInstance().logIn(completion: { (session, error) in
             if session != nil { // user successfully signed in
                 print("Signed in as \(session?.userName)")
-                self.presentFollow()
             } else { // user did not sign in
                 print("Could not sign in")
             }
@@ -55,28 +61,33 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
     }
 
     @IBAction func shareMilestone(_ sender: Any) {
-        var recipeUnlocked: String = "Blue Berry Mash" // this is the recipe or achievement the user unlocked, for testing purposes I will call it "Blue Berry Mash"
+        if checkIfUserIsSignedIn() {
+            var recipeUnlocked: String = "Tea" // this is the recipe or achievement the user unlocked, for testing purposes I will call it "Blue Berry Mash"
         
-        // present compose tweet view
-        let composer = TWTRComposer()
+            // present compose tweet view
+            let composer = TWTRComposer()
         
         
-        composer.setText("I just unlocked the \(recipeUnlocked) recipe in Dawn of Crafting! Download now at https://itunes.apple.com/us/app/dawn-of-crafting/id1067104191")
+            composer.setText("I just discovered the \(recipeUnlocked) recipe in Dawn of Crafting! Download Dawn of Crafting at https://itunes.apple.com/us/app/dawn-of-crafting/id1067104191")
         
-        // get screenshot
-        UIGraphicsBeginImageContext(view.frame.size)
-        view.layer.render(in: UIGraphicsGetCurrentContext()!)
-        let image = UIGraphicsGetImageFromCurrentImageContext()
+            // get screenshot
+            UIGraphicsBeginImageContext(view.frame.size)
+            view.layer.render(in: UIGraphicsGetCurrentContext()!)
+            let image = UIGraphicsGetImageFromCurrentImageContext()
         
-        composer.setImage(image)
+            composer.setImage(image)
         
-        composer.show(from: self, completion: { (result) in
-            if (result == .done) {
-                print("Successfully composed Tweet")
-            } else {
-                print("Cancelled composing")
-            }
-        })
+            composer.show(from: self, completion: { (result) in
+                if (result == .done) {
+                    print("Successfully composed Tweet")
+                } else {
+                    print("Cancelled composing")
+                    print(result)
+                }
+            })
+        } else {
+            signIn()
+        }
     }
     
     func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
@@ -100,41 +111,50 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
     func isFollowing() -> Bool {  // These API calls are causing the bug, I will look into this function further
         var isFollowing: Bool = false // initial set "following" to false, then turn it to true if user is following Dawn of Crafting
         
-        let client = TWTRAPIClient()
-        let friendsEndpoint = "https://api.twitter.com/1.1/friendships/lookup.json"
-        let params = ["screen_name": "dawnofcrafting"]
-        var clientError : NSError?
-        
-        let request = client.urlRequest(withMethod: "GET", url: friendsEndpoint, parameters: params, error: &clientError)
-        
-        client.sendTwitterRequest(request) { (response, data, connectionError) -> Void in
-            if connectionError != nil {
-                print("Error: \(connectionError)")
-            }
+        // get client
+        let store = Twitter.sharedInstance().sessionStore
+        if let userid = store.session()?.userID {
+            let client = TWTRAPIClient(userID: userid)
+            let friendsEndpoint = "https://api.twitter.com/1.1/friendships/lookup.json"
+            let params = ["screen_name": "dawnofcrafting"]
+            var clientError : NSError?
             
-            do {
-                // break down users json to determine whether or not the user is following Dawn of Crafting
-                let json = try JSONSerialization.jsonObject(with: data!, options: [])
-                // JSON with object root
-                if let dictionary = json as? [String: Any] {
-                    if let connections = dictionary["connections"] as? [String] {
-                        // loop through connections, check if "following" is a connection
-                        // meaning that the authenticated user is following Dawn of Crafting
-                        for connection in connections {
-                            if connection == "following" { // user is following Dawn of Crafting
-                                isFollowing = true
-                                // end loop
-                                break
+            let request = client.urlRequest(withMethod: "GET", url: friendsEndpoint, parameters: params, error: &clientError)
+            
+            client.sendTwitterRequest(request) { (response, data, connectionError) -> Void in
+                if connectionError != nil {
+                    print("Error: \(connectionError)")
+                }
+                
+                do {
+                    // break down users json to determine whether or not the user is following Dawn of Crafting
+                    let json = try JSONSerialization.jsonObject(with: data!, options: [])
+                    // JSON with object root
+                    if let dictionary = json as? [String: Any] {
+                        print("Converted to dictionary")
+                        if let connections = dictionary["connections"] as? [String] {
+                            // loop through connections, check if "following" is a connection
+                            // meaning that the authenticated user is following Dawn of Crafting
+                            print("Number of connections: \(connections.count)")
+                            for connection in connections {
+                                print("Connection: \(connection)")
+                                if connection == "following" { // user is following Dawn of Crafting
+                                    isFollowing = true
+                                    // end loop
+                                    break
+                                }
                             }
                         }
                     }
+                    print("json: \(json)")
+                } catch let jsonError as NSError {
+                    print("There is a JSON error!")
+                    print("json error: \(jsonError.localizedDescription)")
                 }
-                print("json: \(json)")
-            } catch let jsonError as NSError {
-                print("json error: \(jsonError.localizedDescription)")
             }
-        }
 
+        }
+        
         return isFollowing
     }
     
