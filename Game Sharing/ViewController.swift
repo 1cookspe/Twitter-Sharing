@@ -87,6 +87,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
             // give user food
             print("Have some food!")
             // show to user that they have earned food (in the actual game, they will receive actual game food, but for testing purposes I will only show them an alert view that they win food)
+            presentAlertView(title: "You win!", message: "Congratulations, enjoy your free food!")
             
         } else {
             // display error to user that they must follow
@@ -96,7 +97,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
         }
     }
     
-    func isFollowing() -> Bool {
+    func isFollowing() -> Bool {  // These API calls are causing the bug, I will look into this function further
         var isFollowing: Bool = false // initial set "following" to false, then turn it to true if user is following Dawn of Crafting
         
         let client = TWTRAPIClient()
@@ -112,16 +113,18 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
             }
             
             do {
+                // break down users json to determine whether or not the user is following Dawn of Crafting
                 let json = try JSONSerialization.jsonObject(with: data!, options: [])
                 // JSON with object root
                 if let dictionary = json as? [String: Any] {
                     if let connections = dictionary["connections"] as? [String] {
-                        print(connections.count)
                         // loop through connections, check if "following" is a connection
                         // meaning that the authenticated user is following Dawn of Crafting
                         for connection in connections {
                             if connection == "following" { // user is following Dawn of Crafting
                                 isFollowing = true
+                                // end loop
+                                break
                             }
                         }
                     }
@@ -135,6 +138,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
         return isFollowing
     }
     
+    // present alert views based on its title and message
     func presentAlertView(title: String, message: String) {
         let alertController = UIAlertController(title: title, message: message, preferredStyle: UIAlertControllerStyle.alert)
         let okAction = UIAlertAction(title: "OK", style: UIAlertActionStyle.default) { (result: UIAlertAction) -> Void in
