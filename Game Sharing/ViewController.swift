@@ -28,7 +28,12 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
             print("No account yet!")
             signIn()
         }
-        presentFollow()
+        //presentFollow()
+        if isFollowing() {
+            print("Is following! Success!")
+        } else {
+            print("Not following! Invalid!")
+        }
     }
     
     func checkIfUserIsSignedIn() -> Bool {
@@ -124,32 +129,26 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
             client.sendTwitterRequest(request) { (response, data, connectionError) -> Void in
                 if connectionError != nil {
                     print("Error: \(connectionError)")
-                }
-                
-                do {
-                    // break down users json to determine whether or not the user is following Dawn of Crafting
-                    let json = try JSONSerialization.jsonObject(with: data!, options: [])
-                    // JSON with object root
-                    if let dictionary = json as? [String: Any] {
-                        print("Converted to dictionary")
-                        if let connections = dictionary["connections"] as? [String] {
-                            // loop through connections, check if "following" is a connection
-                            // meaning that the authenticated user is following Dawn of Crafting
-                            print("Number of connections: \(connections.count)")
-                            for connection in connections {
-                                print("Connection: \(connection)")
-                                if connection == "following" { // user is following Dawn of Crafting
-                                    isFollowing = true
-                                    // end loop
-                                    break
+                } else {
+                    do {
+                        guard let json = try JSONSerialization.jsonObject(with: data!, options: []) as? [[String: Any]] else {
+                            print("error trying to convert data to JSON")
+                            return
+                        }
+                        
+                        for dict in json {
+                            if let value = dict["connections"] as? NSArray {
+                                
+                                for data in value {
+                                    // Get status of user, check if one of the values is "following"
+                                    print("Data \(data)")
                                 }
                             }
                         }
+                        
+                    } catch {
+                            
                     }
-                    print("json: \(json)")
-                } catch let jsonError as NSError {
-                    print("There is a JSON error!")
-                    print("json error: \(jsonError.localizedDescription)")
                 }
             }
 
