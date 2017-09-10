@@ -15,6 +15,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        definesPresentationContext = true
     }
 
     override func didReceiveMemoryWarning() {
@@ -29,11 +30,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
             signIn()
         }
         //presentFollow()
-        if isFollowing() {
-            print("Is following! Success!")
-        } else {
-            print("Not following! Invalid!")
-        }
+        isFollowing()
     }
     
     func checkIfUserIsSignedIn() -> Bool {
@@ -62,7 +59,13 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
         print("PRESENT FOLLOW ---------------------------------------------------------")
         let safariViewController = SFSafariViewController(url: URL(string: "http://www.twitter.com/DawnOfCrafting")!)
         safariViewController.delegate = self
-        self.present(safariViewController, animated: true, completion: nil)
+        if presentedViewController == nil {
+            self.present(safariViewController, animated: true, completion: nil)
+        } else {
+            self.dismiss(animated: false) { () -> Void in
+                self.present(safariViewController, animated: true, completion: nil)
+            }
+        }
     }
 
     @IBAction func shareMilestone(_ sender: Any) {
@@ -98,25 +101,25 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
     func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
         controller.dismiss(animated: true, completion: nil)
         
-        // Once the user closes Twitter, check that the user is following Dawn of Crafting
-        if isFollowing() {
-            // give user food
-            print("Have some food!")
-            // show to user that they have earned food (in the actual game, they will receive actual game food, but for testing purposes I will only show them an alert view that they win food)
-            presentAlertView(title: "You win!", message: "Congratulations, enjoy your free food!")
-            
-        } else {
-            // display error to user that they must follow
-            print("Did not follow")
-            
-            presentAlertView(title: "Must follow for food!", message: "You must follow the Dawn of Crafting Twitter account @DawnOfCrafting to win food! Please try again!")
-        }
+        isFollowing()
     }
     
-    func isFollowing() -> Bool {  // These API calls are causing the bug, I will look into this function further
-        var isFollowing: Bool = false // initial set "following" to false, then turn it to true if user is following Dawn of Crafting
+    func isFollowing() {  // These API calls are causing the bug, I will look into this function further
         
-        // get client
+        // make sure user is signed in
+        if !checkIfUserIsSignedIn() {
+            signIn()
+        }
+        
+        // use callback to get value from closure
+        checkIfUserIsFollowing(callback: { (_ isFollowing: Bool) in
+            // get if user is following from closure
+            self.deliverFood(isFollowing: isFollowing)
+        })
+
+    }
+    
+    func checkIfUserIsFollowing(callback: @escaping ((_ isFollowing: Bool) -> Void)) {
         let store = Twitter.sharedInstance().sessionStore
         if let userid = store.session()?.userID {
             let client = TWTRAPIClient(userID: userid)
@@ -127,34 +130,47 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
             let request = client.urlRequest(withMethod: "GET", url: friendsEndpoint, parameters: params, error: &clientError)
             
             client.sendTwitterRequest(request) { (response, data, connectionError) -> Void in
-                if connectionError != nil {
-                    print("Error: \(connectionError)")
-                } else {
-                    do {
-                        guard let json = try JSONSerialization.jsonObject(with: data!, options: []) as? [[String: Any]] else {
-                            print("error trying to convert data to JSON")
-                            return
-                        }
-                        
-                        for dict in json {
-                            if let value = dict["connections"] as? NSArray {
-                                
-                                for data in value {
-                                    // Get status of user, check if one of the values is "following"
-                                    print("Data \(data)")
+                do {
+                    var followingBool : Bool = false
+                    
+                    guard let json = try JSONSerialization.jsonObject(with: data!, options: []) as? [[String: Any]] else {
+                        print("error trying to convert data to JSON")
+                        return
+                    }
+                    // this is successful, json is successfully converted to [[String: Any]]
+                    
+                    for dict in json { //access each dictionary inside of the json
+                        if let value = dict["connections"] as? NSArray { //gets the values at "connections" (eg. following, followed_by, etc.)
+                            for following in value {
+                                if following as! String == "following" {
+                                    followingBool = true
                                 }
                             }
                         }
-                        
-                    } catch {
-                            
-                    }
+                    } 
+                    // prints error
+                    // Cannot cast "__NSSingleObjectArrayI" to "NSString"
+                    callback(followingBool)
+                } catch let jsonError as NSError {
+                    print("json error: \(jsonError.localizedDescription)")
+                    callback(false)
                 }
             }
-
         }
-        
-        return isFollowing
+    }
+    
+    
+    func deliverFood(isFollowing: Bool) {
+        if isFollowing {
+            // deliver food to user!
+            print("Thanks for following Dawn of Crafting! As a reward, enjoy some free food! Happy crafting!")
+        } else {
+            // notify user that they must follow Dawn of Crafting
+            // present safari view controller to allow user to follow
+            // user is already signed into twitter, so we can present the Dawn of Crafting Twitter page to follow
+            print("Please ensure that you are following Dawn of Crafting (@DawnOfCrafting) on Twitter to win free food!")
+            presentFollow()
+        }
     }
     
     // present alert views based on its title and message
@@ -163,6 +179,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
         let okAction = UIAlertAction(title: "OK", style: UIAlertActionStyle.default) { (result: UIAlertAction) -> Void in
             print("OK")
             alertController.dismiss(animated: true, completion: nil)
+            
         }
         alertController.addAction(okAction)
         self.present(alertController, animated: true, completion: nil)
