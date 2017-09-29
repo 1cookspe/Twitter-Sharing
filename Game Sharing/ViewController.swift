@@ -14,7 +14,6 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
         definesPresentationContext = true
     }
 
@@ -33,7 +32,6 @@ class ViewController: UIViewController {
     }
     
     func isFollowing() {  // These API calls are causing the bug, I will look into this function further
-        
         // make sure user is signed in
         if !TwitterSharing.checkIfUserIsSignedIn() {
             TwitterSharing.signIn()
