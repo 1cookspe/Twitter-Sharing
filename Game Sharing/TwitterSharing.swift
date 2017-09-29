@@ -20,7 +20,7 @@ struct TwitterSharing {
     static func signIn() {
         Twitter.sharedInstance().logIn(completion: { (session, error) in
             if session != nil { // user successfully signed in
-                print("Signed in as \(session?.userName)")
+                print("Signed in as \(String(describing: session?.userName))")
             } else { // user did not sign in
                 print("Could not sign in")
             }

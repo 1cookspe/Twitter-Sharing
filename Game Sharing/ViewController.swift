@@ -43,7 +43,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
 
     @IBAction func shareMilestone(_ sender: Any) {
         if TwitterSharing.checkIfUserIsSignedIn() {
-            var recipeUnlocked: String = "Tea" // this is the recipe or achievement the user unlocked, for testing purposes I will call it "Blue Berry Mash"
+            let recipeUnlocked: String = "Tea" // this is the recipe or achievement the user unlocked, for testing purposes I will call it "Blue Berry Mash"
         
             // present compose tweet view
             let composer = TWTRComposer()
