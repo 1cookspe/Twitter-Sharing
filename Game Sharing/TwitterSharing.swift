@@ -17,7 +17,68 @@ struct TwitterSharing {
         return Twitter.sharedInstance().application(app, open: url, options: options)
     }
     
-    
+    static func signIn() {
+        Twitter.sharedInstance().logIn(completion: { (session, error) in
+            if session != nil { // user successfully signed in
+                print("Signed in as \(session?.userName)")
+            } else { // user did not sign in
+                print("Could not sign in")
+            }
+        })
+    }
+
+    static func checkIfUserIsSignedIn() -> Bool {
+        let store = Twitter.sharedInstance().sessionStore
+        let lastSession = store.session()
+        var signedIn : Bool = false
+        
+        if lastSession != nil { // user is already signed into twitter
+            signedIn = true
+        }
+        
+        return signedIn
+    }
+
+    static func checkIfUserIsFollowing(callback: @escaping ((_ isFollowing: Bool) -> Void)) {
+        let store = Twitter.sharedInstance().sessionStore
+        if let userid = store.session()?.userID {
+            let client = TWTRAPIClient(userID: userid)
+            let friendsEndpoint = "https://api.twitter.com/1.1/friendships/lookup.json"
+            let params = ["screen_name": "dawnofcrafting"]
+            var clientError : NSError?
+            
+            let request = client.urlRequest(withMethod: "GET", url: friendsEndpoint, parameters: params, error: &clientError)
+            
+            client.sendTwitterRequest(request) { (response, data, connectionError) -> Void in
+                do {
+                    var followingBool : Bool = false
+                    
+                    guard let json = try JSONSerialization.jsonObject(with: data!, options: []) as? [[String: Any]] else {
+                        print("error trying to convert data to JSON")
+                        return
+                    }
+                    // this is successful, json is successfully converted to [[String: Any]]
+                    
+                    for dict in json { //access each dictionary inside of the json
+                        if let value = dict["connections"] as? NSArray { //gets the values at "connections" (eg. following, followed_by, etc.)
+                            for following in value {
+                                if following as! String == "following" {
+                                    followingBool = true
+                                }
+                            }
+                        }
+                    }
+                    // prints error
+                    // Cannot cast "__NSSingleObjectArrayI" to "NSString"
+                    callback(followingBool)
+                } catch let jsonError as NSError {
+                    print("json error: \(jsonError.localizedDescription)")
+                    callback(false)
+                }
+            }
+        }
+    }
+
     
 }
 

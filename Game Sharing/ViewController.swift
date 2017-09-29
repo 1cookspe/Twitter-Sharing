@@ -20,36 +20,14 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
 
     @IBAction func followForFood(_ sender: Any) {
         // First, check if user is already signed into twitter
-        if !checkIfUserIsSignedIn() {
+        if !TwitterSharing.checkIfUserIsSignedIn() {
             print("No account yet!")
-            signIn()
+            TwitterSharing.signIn()
         }
         //presentFollow()
         isFollowing()
     }
-    
-    func checkIfUserIsSignedIn() -> Bool {
-        let store = Twitter.sharedInstance().sessionStore
-        let lastSession = store.session()
-        var signedIn : Bool = false
-        
-        if lastSession != nil { // user is already signed into twitter
-            signedIn = true
-        }
-        
-        return signedIn
-    }
-    
-    func signIn() {
-        Twitter.sharedInstance().logIn(completion: { (session, error) in
-            if session != nil { // user successfully signed in
-                print("Signed in as \(session?.userName)")
-            } else { // user did not sign in
-                print("Could not sign in")
-            }
-        })
-    }
-    
+            
     func presentFollow() {
         print("PRESENT FOLLOW ---------------------------------------------------------")
         let safariViewController = SFSafariViewController(url: URL(string: "http://www.twitter.com/DawnOfCrafting")!)
@@ -64,7 +42,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
     }
 
     @IBAction func shareMilestone(_ sender: Any) {
-        if checkIfUserIsSignedIn() {
+        if TwitterSharing.checkIfUserIsSignedIn() {
             var recipeUnlocked: String = "Tea" // this is the recipe or achievement the user unlocked, for testing purposes I will call it "Blue Berry Mash"
         
             // present compose tweet view
@@ -89,7 +67,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
                 }
             })
         } else {
-            signIn()
+            TwitterSharing.signIn()
         }
     }
     
@@ -102,58 +80,17 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
     func isFollowing() {  // These API calls are causing the bug, I will look into this function further
         
         // make sure user is signed in
-        if !checkIfUserIsSignedIn() {
-            signIn()
+        if !TwitterSharing.checkIfUserIsSignedIn() {
+            TwitterSharing.signIn()
         }
         
         // use callback to get value from closure
-        checkIfUserIsFollowing(callback: { (_ isFollowing: Bool) in
+        TwitterSharing.checkIfUserIsFollowing(callback: { (_ isFollowing: Bool) in
             // get if user is following from closure
             self.deliverFood(isFollowing: isFollowing)
         })
 
     }
-    
-    func checkIfUserIsFollowing(callback: @escaping ((_ isFollowing: Bool) -> Void)) {
-        let store = Twitter.sharedInstance().sessionStore
-        if let userid = store.session()?.userID {
-            let client = TWTRAPIClient(userID: userid)
-            let friendsEndpoint = "https://api.twitter.com/1.1/friendships/lookup.json"
-            let params = ["screen_name": "dawnofcrafting"]
-            var clientError : NSError?
-            
-            let request = client.urlRequest(withMethod: "GET", url: friendsEndpoint, parameters: params, error: &clientError)
-            
-            client.sendTwitterRequest(request) { (response, data, connectionError) -> Void in
-                do {
-                    var followingBool : Bool = false
-                    
-                    guard let json = try JSONSerialization.jsonObject(with: data!, options: []) as? [[String: Any]] else {
-                        print("error trying to convert data to JSON")
-                        return
-                    }
-                    // this is successful, json is successfully converted to [[String: Any]]
-                    
-                    for dict in json { //access each dictionary inside of the json
-                        if let value = dict["connections"] as? NSArray { //gets the values at "connections" (eg. following, followed_by, etc.)
-                            for following in value {
-                                if following as! String == "following" {
-                                    followingBool = true
-                                }
-                            }
-                        }
-                    } 
-                    // prints error
-                    // Cannot cast "__NSSingleObjectArrayI" to "NSString"
-                    callback(followingBool)
-                } catch let jsonError as NSError {
-                    print("json error: \(jsonError.localizedDescription)")
-                    callback(false)
-                }
-            }
-        }
-    }
-    
     
     func deliverFood(isFollowing: Bool) {
         if isFollowing {
