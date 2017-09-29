@@ -10,7 +10,7 @@ import UIKit
 import TwitterKit
 import SafariServices
 
-class ViewController: UIViewController, SFSafariViewControllerDelegate {
+class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,28 +27,9 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
         //presentFollow()
         isFollowing()
     }
-            
-    func presentFollow() {
-        print("PRESENT FOLLOW ---------------------------------------------------------")
-        let safariViewController = SFSafariViewController(url: URL(string: "http://www.twitter.com/DawnOfCrafting")!)
-        safariViewController.delegate = self
-        if presentedViewController == nil {
-            self.present(safariViewController, animated: true, completion: nil)
-        } else {
-            self.dismiss(animated: false) { () -> Void in
-                self.present(safariViewController, animated: true, completion: nil)
-            }
-        }
-    }
 
     @IBAction func shareMilestone(_ sender: Any) {
         TwitterSharing.shareMilestone(vc: self)
-    }
-    
-    func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
-        controller.dismiss(animated: true, completion: nil)
-        
-        isFollowing()
     }
     
     func isFollowing() {  // These API calls are causing the bug, I will look into this function further
@@ -79,5 +60,29 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
         }
     }
     
+}
+
+//==========================================================================================================
+// MARK: - SFSafariViewControllerDelegate
+//==========================================================================================================
+
+extension ViewController: SFSafariViewControllerDelegate {
+    func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+        controller.dismiss(animated: true, completion: nil)
+        isFollowing()
+    }
+    
+    func presentFollow() {
+        print("PRESENT FOLLOW ---------------------------------------------------------")
+        let safariViewController = SFSafariViewController(url: URL(string: "http://www.twitter.com/DawnOfCrafting")!)
+        safariViewController.delegate = self
+        if presentedViewController == nil {
+            self.present(safariViewController, animated: true, completion: nil)
+        } else {
+            self.dismiss(animated: false) { () -> Void in
+                self.present(safariViewController, animated: true, completion: nil)
+            }
+        }
+    }
 }
 
