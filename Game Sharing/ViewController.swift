@@ -105,16 +105,5 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
         }
     }
     
-    // present alert views based on its title and message
-    func presentAlertView(title: String, message: String) {
-        let alertController = UIAlertController(title: title, message: message, preferredStyle: UIAlertControllerStyle.alert)
-        let okAction = UIAlertAction(title: "OK", style: UIAlertActionStyle.default) { (result: UIAlertAction) -> Void in
-            print("OK")
-            alertController.dismiss(animated: true, completion: nil)
-            
-        }
-        alertController.addAction(okAction)
-        self.present(alertController, animated: true, completion: nil)
-    }
 }
 
