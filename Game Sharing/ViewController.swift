@@ -42,33 +42,7 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
     }
 
     @IBAction func shareMilestone(_ sender: Any) {
-        if TwitterSharing.checkIfUserIsSignedIn() {
-            let recipeUnlocked: String = "Tea" // this is the recipe or achievement the user unlocked, for testing purposes I will call it "Blue Berry Mash"
-        
-            // present compose tweet view
-            let composer = TWTRComposer()
-        
-        
-            composer.setText("I just discovered the \(recipeUnlocked) recipe in Dawn of Crafting! Download Dawn of Crafting at https://itunes.apple.com/us/app/dawn-of-crafting/id1067104191")
-        
-            // get screenshot
-            UIGraphicsBeginImageContext(view.frame.size)
-            view.layer.render(in: UIGraphicsGetCurrentContext()!)
-            let image = UIGraphicsGetImageFromCurrentImageContext()
-        
-            composer.setImage(image)
-        
-            composer.show(from: self, completion: { (result) in
-                if (result == .done) {
-                    print("Successfully composed Tweet")
-                } else {
-                    print("Cancelled composing")
-                    print(result)
-                }
-            })
-        } else {
-            TwitterSharing.signIn()
-        }
+        TwitterSharing.shareMilestone(vc: self)
     }
     
     func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
