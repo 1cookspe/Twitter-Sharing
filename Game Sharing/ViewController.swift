@@ -18,11 +18,6 @@ class ViewController: UIViewController, SFSafariViewControllerDelegate {
         definesPresentationContext = true
     }
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
-    }
-
     @IBAction func followForFood(_ sender: Any) {
         // First, check if user is already signed into twitter
         if !checkIfUserIsSignedIn() {
